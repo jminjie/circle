@@ -1,0 +1,58 @@
+body {
+      font-family: "Lucida Console", "Courier New", monospace;
+      text-align: center;
+      padding: 1em 0 0 0;
+      color: #ce2960;
+}
+
+div {
+      text-align: center;
+}
+
+button {
+    border: none;
+    padding: 2em 2em 2em 2em;
+    border-radius: 1em;
+    background-color:#6ee2d9;
+    transition: 0.5s;
+    font-family: "Lucida Console", "Courier New", monospace;
+    text-align: center;
+}
+
+button:hover{
+    background-color:#0f4b55;
+}
+
+.sound-overlay {                                                                                    
+    padding: 1em 1em 1em 1em;
+    background: #fff;
+    z-index: 20;
+    line-height: 20px;
+    border-radius: 6px;
+    position:fixed;
+    width: 300px;
+    height: 200px;
+    top: 50%;
+    left: 49.5%;
+    margin-left: -150px; /* Negative half of width. */
+    margin-top: -100px; /* Negative half of height. */
+    font-size: 16px;
+    line-height: 24px;
+                                                                                                     
+    box-shadow: 0 0 0 1500px rgba(0, 0, 0, .5);
+                                                                                                     
+    .accept-sound {
+        cursor: pointer;
+    }
+}                                                                                                    
+
+
+.d-none {
+	display: none;
+}
+
+#startButton {
+	display: none;
+}
+
+
