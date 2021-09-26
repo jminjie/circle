@@ -33,7 +33,7 @@ function stopAnimation() {
 	
 const canvas = document.querySelector('#canvas');
 
-const RADIUS = 220;
+setDefaultRadius(220);
 
 // Context for the canvas for 2 dimensional operations
 const ctx = canvas.getContext('2d');
@@ -41,11 +41,32 @@ const ctx = canvas.getContext('2d');
 canvas.onmousedown = startPainting;
 canvas.onmouseup = stopPainting;
 canvas.onmousemove = sketch;
+
+canvas.touchstart = startPainting;
+canvas.touchend = stopPainting;
+canvas.touchmove = sketch;
 	
 // Resizes the canvas to the available size of the window.
 function resize(){
-    ctx.canvas.width = window.innerWidth-100;
-    ctx.canvas.height = window.innerHeight-300;
+    canvas.width = window.innerWidth-100;
+    canvas.height = window.innerHeight-300;
+    let limitingDim = Math.min(canvas.height, canvas.width);
+    setDefaultRadius(Math.min(220, limitingDim / 2 - 40));
+}
+
+
+RADIUS = 220;
+userCircleTopRadius = RADIUS;
+userCircleBottomRadius = RADIUS;
+userCircleRightRadius = RADIUS;
+userCircleLeftRadius = RADIUS;
+
+function setDefaultRadius(rad) {
+    RADIUS = rad;
+    userCircleTopRadius = RADIUS;
+    userCircleBottomRadius = RADIUS;
+    userCircleRightRadius = RADIUS;
+    userCircleLeftRadius = RADIUS;
 }
 
 function clearCanvas() {
@@ -224,10 +245,6 @@ function startPainting(event){
     clearCanvas()
     stopAnimation();
 }
-userCircleTopRadius = RADIUS;
-userCircleBottomRadius = RADIUS;
-userCircleRightRadius = RADIUS;
-userCircleLeftRadius = RADIUS;
 lowestVal = 1000;
 highestVal = -1;
 function stopPainting(){
