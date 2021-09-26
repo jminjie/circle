@@ -6,6 +6,13 @@ window.addEventListener('load', ()=>{
 	resize(); // Resizes the canvas once the window loads
 	window.addEventListener('resize', resize);
 
+
+    const canvas = document.querySelector('#canvas');
+    canvas.addEventListener("touchstart", startPaintingTouch, false);
+    canvas.addEventListener("touchend", stopPainting, false);
+    canvas.addEventListener("touchmove", sketchTouch, false);
+
+
     clearCanvas();
     startAnimation();
 });
@@ -33,35 +40,29 @@ function stopAnimation() {
 	
 const canvas = document.querySelector('#canvas');
 
-setDefaultRadius(220);
-
 // Context for the canvas for 2 dimensional operations
 const ctx = canvas.getContext('2d');
 
-canvas.onmousedown = startPainting;
+canvas.onmousedown = startPaintingMouse;
 canvas.onmouseup = stopPainting;
-canvas.onmousemove = sketch;
-
-canvas.touchstart = startPainting;
-canvas.touchend = stopPainting;
-canvas.touchmove = sketch;
+canvas.onmousemove = sketchMouse;
 	
 // Resizes the canvas to the available size of the window.
 function resize(){
     canvas.width = window.innerWidth-100;
     canvas.height = window.innerHeight-300;
     let limitingDim = Math.min(canvas.height, canvas.width);
-    setDefaultRadius(Math.min(220, limitingDim / 2 - 40));
+    setRadius(Math.min(220, limitingDim / 2 - 40));
 }
 
+var RADIUS = 220;
+var userCircleTopRadius = RADIUS;
+var userCircleBottomRadius = RADIUS;
+var userCircleRightRadius = RADIUS;
+var userCircleLeftRadius = RADIUS;
 
-RADIUS = 220;
-userCircleTopRadius = RADIUS;
-userCircleBottomRadius = RADIUS;
-userCircleRightRadius = RADIUS;
-userCircleLeftRadius = RADIUS;
-
-function setDefaultRadius(rad) {
+function setRadius(rad) {
+    console.log("setRadius called from resize");
     RADIUS = rad;
     userCircleTopRadius = RADIUS;
     userCircleBottomRadius = RADIUS;
@@ -85,8 +86,6 @@ function clearCanvas() {
     ctx.arc(x, y, RADIUS, 0, 2 * Math.PI, true);
     ctx.stroke();
     userCircle = []
-    userTopBottom = []
-    userLeftRight = []
 
 }
 
@@ -148,6 +147,7 @@ function animate() {
 
     // handle beat 1
     if (beat1y >= userCircleTopRadius) {
+        //console.log("COLLISION 1");
         shake = 40;
         sampler.triggerAttackRelease("A2");
         beat1y = 0;
@@ -159,6 +159,7 @@ function animate() {
 
     // handle beat 2
     if (beat2x >= userCircleRightRadius) {
+        //console.log("COLLISION 2");
         shake = 10;
         sampler.triggerAttackRelease("C5");
         beat2x = 0;
@@ -170,6 +171,7 @@ function animate() {
 
     // handle beat 3
     if (beat3y >= userCircleBottomRadius) {
+        //console.log("COLLISION 3");
         shake = 20;
         sampler.triggerAttackRelease("C4");
         beat3y = 0;
@@ -181,6 +183,7 @@ function animate() {
 
     // handle beat 4
     if (beat4x >= userCircleLeftRadius) {
+        //console.log("COLLISION 4");
         shake = 10;
         sampler.triggerAttackRelease("C5");
         beat4x = 0;
@@ -226,74 +229,148 @@ function animate() {
 }
 
 userCircle = []
-userTopBottom = []
-userLeftRight = []
 
 // Updates the coordianates of the cursor when
 // an event e is triggered to the coordinates where
 // the said event is triggered.
-function getPosition(event){
+function getPositionMouse(event) {
     coord.x = event.clientX - canvas.offsetLeft;
     coord.y = event.clientY - canvas.offsetTop;
 }
 
+function getPositionTouch(event) {
+    coord.x = event.touches[0].clientX - canvas.offsetLeft;
+    coord.y = event.touches[0].clientY - canvas.offsetTop;
+}
+
 // The following functions toggle the flag to start
 // and stop drawing
-function startPainting(event){
+function startPaintingMouse(event) { startPainting(event, false); }
+function startPaintingTouch(event) { startPainting(event, true); }
+function startPainting(event, touch){
     paint = true;
-    getPosition(event);
+    if (touch) {
+        getPositionTouch(event);
+    } else {
+        getPositionMouse(event);
+    }
     clearCanvas()
     stopAnimation();
 }
+
 lowestVal = 1000;
 highestVal = -1;
 function stopPainting(){
+    console.log("stopPainting, calculating user circle radius");
+    userCircleTopRadius = -1;
+    userCircleRightRadius = -1;
+    userCircleLeftRadius = -1;
+    userCircleBottomRadius = -1;
+
+    const xOffset = canvas.width/2;
+    const yOffset = canvas.height/2;
+    for (let i = 1; i < userCircle.length; i++) {
+        point1 = userCircle[i-1];
+        point2 = userCircle[i];
+
+        //     a
+        //    ----
+        //   |
+        //   |
+        // b |
+        //   |
+        //   |
+        //   |
+        //   . origin of the circle, located at (xOffset, yOffset)
+
+        if (Math.sign(point1.x - xOffset) != Math.sign(point2.x - xOffset)) {
+            // 'a' has changed signs, meaning
+            // we have crossed the vertical axis of the circle
+
+            // convert x,y to a,b. This flips the y axis and centers it about the circle's origin
+            point1.a = point1.x - xOffset;
+            point1.b = yOffset - point1.y;
+            point2.a = point2.x - xOffset;
+            point2.b = yOffset - point2.y;
+
+            // calculate Y-intercept == radius
+            M = (point1.b - point2.b) / (point1.a - point2.a);
+            R = Math.abs(point1.b - M * point1.a);
+
+            // if b is pos, this is beat 1. if b is neg, this is beat 3
+            if (point1.b > 0) {
+                if (userCircleTopRadius == -1) {
+                    console.log("setting top radius first time R=" + R);
+                    userCircleTopRadius = R;
+                } else {
+                    console.log("setting top radius as min R=" + R + "userCircleTopRadius=" + userCircleTopRadius);
+                    userCircleTopRadius = Math.min(userCircleTopRadius, R);
+                }
+            } else if (point1.b < 0) {
+                console.log("setting bottom radius R=" + R);
+                if (userCircleBottomRadius == -1) {
+                    userCircleBottomRadius = R;
+                } else {
+                    userCircleBottomRadius = Math.min(userCircleBottomRadius, R);
+                }
+            }
+        }
+        if (Math.sign(yOffset - point1.y) != Math.sign(yOffset - point2.y)) {
+            // 'b' has changed signs, meaning
+            // we have crossed the horizontal axis of the circle
+
+            // convert x,y to a,b. This flips the y axis and centers it about the circle's origin
+            point1.a = point1.x - xOffset;
+            point1.b = yOffset - point1.y;
+            point2.a = point2.x - xOffset;
+            point2.b = yOffset - point2.y;
+
+            // calculate X-intercept == radius
+            N = (point1.a - point2.a) / (point1.b - point2.b);
+            R = Math.abs(point1.a - N * point1.b);
+
+            // if a is pos, this is beat 2. if a is neg, this is beat 4
+            if (point1.a > 0) {
+                console.log("setting right radius R=" + R);
+                if (userCircleRightRadius == -1) {
+                    userCircleRightRadius = R;
+                } else {
+                    userCircleRightRadius = Math.min(userCircleRightRadius, R);
+                }
+            } else if (point1.a < 0) {
+                console.log("setting left radius R=" + R);
+                if (userCircleLeftRadius == -1) {
+                    userCircleLeftRadius = R;
+                } else {
+                    userCircleLeftRadius = Math.min(userCircleLeftRadius, R);
+                }
+            }
+        }
+    }
+    if (userCircleTopRadius == -1) {
+        console.log("No top radius, using default");
+        userCircleTopRadius = RADIUS;
+    }
+    if (userCircleBottomRadius == -1) {
+        console.log("No bottom radius, using default");
+        userCircleBottomRadius = RADIUS;
+    }
+    if (userCircleLeftRadius == -1) {
+        console.log("No left radius, using default");
+        userCircleLeftRadius = RADIUS;
+    }
+    if (userCircleRightRadius == -1) {
+        console.log("No right radius, using default");
+        userCircleRightRadius = RADIUS;
+    }
+
     paint = false;
     startAnimation()
-
-    
-    userCircleTopRadius = RADIUS;
-    userCircleRightRadius = RADIUS;
-    userCircleLeftRadius = RADIUS;
-    userCircleBottomRadius = RADIUS;
-    lowestVal = 1000;
-    highestVal = -1;
-    rightestVal = -1;
-    leftestVal = 1000;
-    // handle top and bottom radius
-    for (let point of userTopBottom) {
-        if (point.y < lowestVal && point.y < canvas.height/2)
-            lowestVal = point.y 
-        if (point.y > highestVal && point.y > canvas.height/2)
-            highestVal = point.y
-    }
-    if (lowestVal != 1000) {
-        userCircleTopRadius = canvas.height/2 - lowestVal;
-    }
-    if (highestVal != -1) {
-        userCircleBottomRadius = highestVal - canvas.height/2;
-    }
-
-    // handle left and right radius
-    for (let point of userLeftRight) {
-        if (point.x > rightestVal && point.x > canvas.width/2)
-            rightestVal = point.x;
-        if (point.x < leftestVal && point.x < canvas.width/2)
-            leftestVal = point.x;
-    }
-    if (rightestVal != -1) {
-        userCircleRightRadius = rightestVal - canvas.width/2;
-    }
-    if (leftestVal != 1000 ) {
-        userCircleLeftRadius = canvas.width/2 - leftestVal;
-    }
-
-    userTopBottom = []
-    userLeftRight = []
 }
 
-
-function sketch(event){
+function sketchMouse(event) { sketch(event, false); }
+function sketchTouch(event) { sketch(event, true); }
+function sketch(event, touch){
     if (!paint) return;
     ctx.beginPath();
 
@@ -311,30 +388,25 @@ function sketch(event){
     // The position of the cursor
     // gets updated as we move the
     // mouse around.
-    getPosition(event);
+    if (touch) {
+        getPositionTouch(event);
+    } else {
+        getPositionMouse(event);
+    }
 
     // A line is traced from start
     // coordinate to this coordinate
     ctx.lineTo(coord.x , coord.y);
 
-    const BUFFER = 15
 
     savedCoord = {x:coord.x , y:coord.y};
     userCircle.push(savedCoord);
-    if (savedCoord.x < canvas.width/2 + BUFFER) {
-        if (savedCoord.x > canvas.width/2 - BUFFER){
-            userTopBottom.push(savedCoord);
-        }
-    }
-    if (savedCoord.y < canvas.height/2 + BUFFER) {
-        if (savedCoord.y > canvas.height/2 - BUFFER) {
-            userLeftRight.push(savedCoord);
-        }
-    }
 
     // Draws the line.
     ctx.stroke();
 }
+
+
 
 
 // TODO do this without jquery
