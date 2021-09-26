@@ -7,11 +7,13 @@ window.addEventListener('load', ()=>{
 	window.addEventListener('resize', resize);
 
     clearCanvas();
+    startAnimation();
 });
 
 function startAnimation() {
 	console.log("START");
     Tone.Transport.start()
+    Tone.start();
     animate();
     beat1y = 0;
     beat3y = 0;
@@ -317,3 +319,17 @@ function sketch(event){
     ctx.stroke();
 }
 
+
+// TODO do this without jquery
+$(document).ready(function() {
+  if (document.cookie.indexOf("cookie_soundon=") < 0) {
+    $('.sound-overlay').removeClass('d-none').addClass('d-block');
+  }
+  $('.accept-sound').on('click', function() {
+    document.cookie = "cookie_soundon=true;";
+    $('.sound-overlay').removeClass('d-block').addClass('d-none');
+    stopAnimation();
+	Tone.start();
+	startAnimation();
+	});
+});
