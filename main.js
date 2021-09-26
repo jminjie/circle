@@ -132,7 +132,6 @@ const loopC = new Tone.Loop(time => {
 const loopD = new Tone.Loop(time => {
     beat4velocity = 0.3
 }, "1m").start("2n.");
-// all loops start until the Transport is started
 
 
 var shake = 0;
@@ -149,7 +148,7 @@ function animate() {
     if (beat1y >= userCircleTopRadius) {
         //console.log("COLLISION 1");
         shake = 40;
-        sampler.triggerAttackRelease("A2");
+        sampler.triggerAttackRelease("A2", Tone.context.currentTime);
         beat1y = 0;
         beat1velocity = 0
     }
@@ -161,7 +160,7 @@ function animate() {
     if (beat2x >= userCircleRightRadius) {
         //console.log("COLLISION 2");
         shake = 10;
-        sampler.triggerAttackRelease("C5");
+        sampler.triggerAttackRelease("C5", Tone.context.currentTime);
         beat2x = 0;
         beat2velocity = 0
     }
@@ -173,7 +172,7 @@ function animate() {
     if (beat3y >= userCircleBottomRadius) {
         //console.log("COLLISION 3");
         shake = 20;
-        sampler.triggerAttackRelease("C4");
+        sampler.triggerAttackRelease("C4", Tone.context.currentTime);
         beat3y = 0;
         beat3velocity = 0
     }
@@ -185,7 +184,7 @@ function animate() {
     if (beat4x >= userCircleLeftRadius) {
         //console.log("COLLISION 4");
         shake = 10;
-        sampler.triggerAttackRelease("C5");
+        sampler.triggerAttackRelease("C5", Tone.context.currentTime);
         beat4x = 0;
         beat4velocity = 0
     }
@@ -202,10 +201,10 @@ function animate() {
     y = canvas.height/2;
 
     ctx.beginPath();
-    if (shake > 1) {
+    if (shake > 1.5) {
         ctx.arc(x, y, RADIUS+shake, 0, 2 * Math.PI, true);
 
-        shake = Math.pow(shake, elapsedTime * 0.05);
+        shake = Math.pow(shake, elapsedTime * 0.055);
         //shake =  shake / (elapsedTime/7)
     } else {
         ctx.arc(x, y, RADIUS, 0, 2 * Math.PI, true);
