@@ -24,28 +24,27 @@ button:hover{
 }
 
 .sound-overlay {                                                                                    
-    padding: 1em 1em 1em 1em;
     background: #fff;
     z-index: 20;
     line-height: 20px;
     border-radius: 6px;
     position:fixed;
-    width: 300px;
-    height: 200px;
+    width: 320px;
+    height: 220px;
     top: 50%;
-    left: 49.5%;
-    margin-left: -150px; /* Negative half of width. */
-    margin-top: -100px; /* Negative half of height. */
+    left: 50%;
+    margin-left: -180px; /* Negative half of width. */
+    margin-top: -180px; /* Negative half of height. */
     font-size: 16px;
     line-height: 24px;
-                                                                                                     
+
+    padding: 20px 20px 20px 20px;
+
     box-shadow: 0 0 0 1500px rgba(0, 0, 0, .5);
-                                                                                                     
     .accept-sound {
         cursor: pointer;
     }
-}                                                                                                    
-
+}
 
 .d-none {
 	display: none;
