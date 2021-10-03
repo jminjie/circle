@@ -1,5 +1,66 @@
+/*
+ * Constant variables
+ */
 const canvas = document.querySelector('#canvas');
 const ctx = canvas.getContext('2d');
+const sampler = new Tone.Sampler({
+	urls: {
+		"A3": "A3.mp3",
+		"C3": "C3.mp3",
+		"C4": "C4.mp3",
+		"C5": "C5.mp3",
+		"D5": "D5.mp3",
+	},
+	release: 1,
+	baseUrl: "https://jminjie.github.io/samples/drum/",
+}).toDestination();
+
+/**
+ * Time signature and beat configuration. These are mostly constant but can be reconfigured.
+ * If the value of any changes, the value of all should be updated
+ */
+Tone.Transport.timeSignature = [4, 4];
+var NUM_BEATS = 4;
+var LOOP_START_DELAY = ['0', '0.5', '1', '1.5'];
+var SHAKE_AMOUNT = [40, 10, 20, 10];
+var NOTES = ['A2', 'C5', 'C4', 'C5'];
+var theta = [0, Math.PI/2, Math.PI, 3*Math.PI/2];
+
+var loops = [];
+for (let i = 0; i < NUM_BEATS; i++) {
+    loops.push(new Tone.Loop(time => {
+        beatVelocity[i] = 0.3;
+    }, '1m'));
+}
+
+// Calculate tan/sin/cos of the values in theta in advance
+var tanTheta = [];
+for (let i = 0; i < theta.length; i++) {
+    tanTheta.push(Math.tan(theta[i]));
+}
+var sinTheta = [];
+for (let i = 0; i < theta.length; i++) {
+    sinTheta.push(Math.sin(theta[i]));
+}
+var cosTheta = [];
+for (let i = 0; i < theta.length; i++) {
+    cosTheta.push(Math.cos(theta[i]));
+}
+
+/**
+ * Animation variables
+ */
+var templateRadius = 220;
+var userCircleRadius = new Array(NUM_BEATS).fill(templateRadius);
+var beatDistance = new Array(NUM_BEATS).fill(0);
+var beatVelocity = new Array(NUM_BEATS).fill(0);
+
+var userCircle = [];
+var shake = 0;
+var lastTimeInFrame = 0
+var elapsedTimeBetweenFrames = 1;
+var coord = {x:0 , y:0};
+var paint = false;
 
 window.addEventListener('load', ()=>{
 	resize(); // Resizes the canvas once the window loads
@@ -24,15 +85,76 @@ function resize(){
     setRadius(Math.min(220, limitingDim / 2 - 40));
 }
 
-var templateRadius = 220;
+function setSixEight() {
+    Tone.Transport.stop();
+    stopAnimation();
 
-var userCircleRadius = [templateRadius, templateRadius, templateRadius, templateRadius];
-var userCircle = [];
+    Tone.Transport.timeSignature = [6, 4];
+    NUM_BEATS = 6;
+    LOOP_START_DELAY = ['0', '0.5', '1', '1.5', '2', '2.5'];
+    SHAKE_AMOUNT = [40, 10, 10, 20, 10, 10];
+    NOTES = ['A2', 'C5', 'C5', 'C4', 'C5', 'C5'];
+    theta = [0, Math.PI/3, 2*Math.PI/3, Math.PI, 4*Math.PI/3, 5*Math.PI/3];
+
+    resetHelperVars();
+}
+
+function setFourFour() {
+    Tone.Transport.stop();
+    stopAnimation();
+
+    Tone.Transport.timeSignature = [4, 4];
+    NUM_BEATS = 4;
+    LOOP_START_DELAY = ['0', '0.5', '1', '1.5'];
+    SHAKE_AMOUNT = [40, 10, 20, 10];
+    NOTES = ['A2', 'C5', 'C4', 'C5'];
+    theta = [0, Math.PI/2, Math.PI, 3*Math.PI/2];
+
+    resetHelperVars();
+}
+
+function toggleTimeSignature() {
+    if (NUM_BEATS == 4) {
+        document.querySelector('#settings').innerText = "Switch to 4/4";
+        setSixEight();
+    } else if (NUM_BEATS == 6) {
+        document.querySelector('#settings').innerText = "Switch to 6/8";
+        setFourFour();
+    }
+}
+
+// called when changing time signature
+function resetHelperVars() {
+    loops = [];
+    for (let i = 0; i < NUM_BEATS; i++) {
+        loops.push(new Tone.Loop(time => {
+            beatVelocity[i] = 0.3;
+        }, '1m'));
+    }
+
+    // Calculate tan/sin/cos of the values in theta in advance
+    tanTheta = [];
+    for (let i = 0; i < theta.length; i++) {
+        tanTheta.push(Math.tan(theta[i]));
+    }
+    sinTheta = [];
+    for (let i = 0; i < theta.length; i++) {
+        sinTheta.push(Math.sin(theta[i]));
+    }
+    cosTheta = [];
+    for (let i = 0; i < theta.length; i++) {
+        cosTheta.push(Math.cos(theta[i]));
+    }
+
+    userCircleRadius = new Array(NUM_BEATS).fill(templateRadius);
+    beatDistance = new Array(NUM_BEATS).fill(0);
+    beatVelocity = new Array(NUM_BEATS).fill(0);
+}
 
 function setRadius(rad) {
     console.log("setRadius called from resize");
     templateRadius = rad;
-    userCircleRadius = [templateRadius, templateRadius, templateRadius, templateRadius];
+    userCircleRadius.fill(templateRadius);
 }
 
 function clearUserCircle() {
@@ -57,21 +179,18 @@ function drawTemplateCircle(r) {
     ctx.stroke();
 }
 
-var beatDistance = [0, 0, 0, 0];
-var beatVelocity = [0, 0, 0, 0];
-
 function startAnimation() {
 	console.log("START");
 	document.getElementById("stopButton").style.display = "inline";
 	document.getElementById("startButton").style.display = "none";
 
     Tone.Transport.start()
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < loops.length; i++) {
         loops[i].start(LOOP_START_DELAY[i]);
     }
     Tone.start();
     animate();
-    beatDistance = [0, 0, 0, 0];
+    beatDistance.fill(0);
 }
 
 function stopAnimation() {
@@ -80,70 +199,28 @@ function stopAnimation() {
 	document.getElementById("startButton").style.display = "inline";
 
     Tone.Transport.stop()
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < loops.length; i++) {
         loops[i].stop();
     }
 }
 
-const sampler = new Tone.Sampler({
-	urls: {
-		"A3": "A3.mp3",
-		"C3": "C3.mp3",
-		"C4": "C4.mp3",
-		"C5": "C5.mp3",
-		"D5": "D5.mp3",
-	},
-	release: 1,
-	baseUrl: "https://jminjie.github.io/samples/drum/",
-}).toDestination();
-
-const LOOP_START_DELAY = ['0', '4n', '2n', '2n.'];
-
-var loops = [];
-for (let i = 0; i < 4; i++) {
-    loops.push(new Tone.Loop(time => {
-        beatVelocity[i] = 0.3;
-    }, '1m'));
-
-}
-
-var shake = 0;
-var lastTime = 0
-var elapsedTime = 1;
-
-const SHAKE_AMOUNT = [40, 10, 20, 10];
-const NOTES = ['A2', 'C5', 'C4', 'C5'];
-
 function getPosition(i) {
     var pos = {x: canvas.width/2 - 2, y: canvas.height/2 - 2};
-    if (i == 0) {
-        pos.y -= beatDistance[i];
-        return pos;
-    }
-    if (i == 1) {
-        pos.x += beatDistance[i];
-        return pos;
-    }
-    if (i == 2) {
-        pos.y += beatDistance[i];
-        return pos;
-    }
-    if (i == 3) {
-        pos.x -= beatDistance[i];
-        return pos;
-    }
+    pos.x += beatDistance[i] * sinTheta[i];
+    pos.y -= beatDistance[i] * cosTheta[i];
+    return pos;
 }
 
 function animate() {
-    elapsedTime = Date.now() - lastTime;
-    lastTime = Date.now();
-    if (elapsedTime == 0) return;
+    elapsedTimeBetweenFrames = Date.now() - lastTimeInFrame;
+    lastTimeInFrame = Date.now();
+    if (elapsedTimeBetweenFrames == 0) return;
 
     ctx.save()
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // draw beats
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < NUM_BEATS; i++) {
         if (beatDistance[i] >= userCircleRadius[i]) {
             //console.log("COLLISION " + i);
             shake = SHAKE_AMOUNT[i];
@@ -154,13 +231,13 @@ function animate() {
         ctx.beginPath();
         let pos = getPosition(i);
         ctx.fillRect(pos.x, pos.y, 4, 4);
-        beatDistance[i] += beatVelocity[i] * (elapsedTime)
+        beatDistance[i] += beatVelocity[i] * (elapsedTimeBetweenFrames)
     }
 
     // draw template circle
     if (shake > 1.5) {
         drawTemplateCircle(templateRadius+shake);
-        shake = Math.pow(shake, elapsedTime * 0.055);
+        shake = Math.pow(shake, elapsedTimeBetweenFrames * 0.055);
     } else {
         drawTemplateCircle(templateRadius);
     }
@@ -182,12 +259,6 @@ function animate() {
     window.requestAnimationFrame(animate);
 }
 
-var coord = {x:0 , y:0};
-var paint = false;
-
-// Updates the coordianates of the cursor when
-// an event e is triggered to the coordinates where
-// the said event is triggered.
 function getPositionMouse(event) {
     coord.x = event.clientX - canvas.offsetLeft;
     coord.y = event.clientY - canvas.offsetTop;
@@ -198,8 +269,6 @@ function getPositionTouch(event) {
     coord.y = event.touches[0].clientY - canvas.offsetTop;
 }
 
-// The following functions toggle the flag to start
-// and stop drawing
 function startPaintingMouse(event) { startPainting(event, false); }
 function startPaintingTouch(event) { startPainting(event, true); }
 function startPainting(event, touch){
@@ -217,14 +286,6 @@ function setAB(point, xOffset, yOffset) {
     // convert x,y to a,b. This flips the y axis and centers it about the circle's origin
     point.a = point.x - xOffset
     point.b = yOffset - point.y;
-}
-
-
-//var THETA = [Math.PI/3, 2*Math.PI/3, Math.PI/2, Math.PI, 3*Math.PI/2];
-var theta = [0, Math.PI/2, Math.PI, 3*Math.PI/2];
-var tanTheta = [];
-for (let i = 0; i < theta.length; i++) {
-    tanTheta.push(Math.tan(theta[i]));
 }
 
 function clamp(val, max, min) {
@@ -274,7 +335,7 @@ function posATan(x) {
 }
 
 function calculateUserCircleRadius() {
-    userCircleRadius = [-1, -1, -1, -1];
+    userCircleRadius.fill(-1);
 
     for (let i = 1; i < userCircle.length; i++) {
         let point1 = userCircle[i-1];
@@ -356,7 +417,7 @@ function calculateUserCircleRadius() {
         }
     }
 
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < userCircleRadius.length; i++) {
         if (userCircleRadius[i] == -1) {
             userCircleRadius[i] = templateRadius;
         }

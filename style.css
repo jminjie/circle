@@ -53,3 +53,10 @@ button:hover{
 #stopButton {
 	display: none;
 }
+
+#settings {
+    position: absolute;
+    right: 1em;
+    bottom: 1em;
+    cursor: pointer;
+}
