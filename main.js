@@ -99,6 +99,7 @@ function setSixEight() {
     theta = [0, Math.PI/3, 2*Math.PI/3, Math.PI, 4*Math.PI/3, 5*Math.PI/3];
 
     resetHelperVars();
+    calculateUserCircleRadius();
 }
 
 function setFourFour() {
@@ -113,6 +114,7 @@ function setFourFour() {
     theta = [0, Math.PI/2, Math.PI, 3*Math.PI/2];
 
     resetHelperVars();
+    calculateUserCircleRadius();
 }
 
 function toggleTimeSignature() {
