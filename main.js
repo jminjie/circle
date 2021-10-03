@@ -53,6 +53,8 @@ function resize(){
     canvas.height = window.innerHeight-300;
     let limitingDim = Math.min(canvas.height, canvas.width);
     setRadius(Math.min(220, limitingDim / 2 - 40));
+
+    stopAnimation();
 }
 
 var RADIUS = 220;
