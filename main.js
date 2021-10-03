@@ -114,60 +114,48 @@ var elapsedTime = 1;
 const SHAKE_AMOUNT = [40, 10, 20, 10];
 const NOTES = ['A2', 'C5', 'C4', 'C5'];
 
+function getPosition(i) {
+    var pos = {x: canvas.width/2 - 2, y: canvas.height/2 - 2};
+    if (i == 0) {
+        pos.y -= beatDistance[i];
+        return pos;
+    }
+    if (i == 1) {
+        pos.x += beatDistance[i];
+        return pos;
+    }
+    if (i == 2) {
+        pos.y += beatDistance[i];
+        return pos;
+    }
+    if (i == 3) {
+        pos.x -= beatDistance[i];
+        return pos;
+    }
+}
+
 function animate() {
-    ctx.save()
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
     elapsedTime = Date.now() - lastTime;
     lastTime = Date.now();
     if (elapsedTime == 0) return;
 
-    // handle beat 1
-    if (beatDistance[0] >= userCircleRadius[0]) {
-        //console.log("COLLISION 1");
-        shake = SHAKE_AMOUNT[0];
-        sampler.triggerAttackRelease(NOTES[0], Tone.context.currentTime);
-        beatDistance[0] = 0;
-        beatVelocity[0] = 0
-    }
-    ctx.beginPath();
-    ctx.fillRect(canvas.width/2-2,canvas.height/2-2 - beatDistance[0],4,4);
-    beatDistance[0] += beatVelocity[0] * (elapsedTime)
+    ctx.save()
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // handle beat 2
-    if (beatDistance[1] >= userCircleRadius[1]) {
-        //console.log("COLLISION 2");
-        shake = SHAKE_AMOUNT[1];
-        sampler.triggerAttackRelease(NOTES[1], Tone.context.currentTime);
-        beatDistance[1] = 0;
-        beatVelocity[1] = 0
+    // draw beats
+    for (let i = 0; i < 4; i++) {
+        if (beatDistance[i] >= userCircleRadius[i]) {
+            //console.log("COLLISION " + i);
+            shake = SHAKE_AMOUNT[i];
+            sampler.triggerAttackRelease(NOTES[i], Tone.context.currentTime);
+            beatDistance[i] = 0;
+            beatVelocity[i] = 0
+        }
+        ctx.beginPath();
+        let pos = getPosition(i);
+        ctx.fillRect(pos.x, pos.y, 4, 4);
+        beatDistance[i] += beatVelocity[i] * (elapsedTime)
     }
-    ctx.beginPath();
-    ctx.fillRect(canvas.width/2-2 + beatDistance[1],canvas.height/2-2,4,4);
-    beatDistance[1] += beatVelocity[1] * (elapsedTime)
-
-    // handle beat 3
-    if (beatDistance[2] >= userCircleRadius[2]) {
-        //console.log("COLLISION 3");
-        shake = SHAKE_AMOUNT[2];
-        sampler.triggerAttackRelease(NOTES[2], Tone.context.currentTime);
-        beatDistance[2] = 0;
-        beatVelocity[2] = 0
-    }
-    ctx.beginPath();
-    ctx.fillRect(canvas.width/2-2,canvas.height/2-2 + beatDistance[2],4,4);
-    beatDistance[2] += beatVelocity[2] * (elapsedTime)
-
-    // handle beat 4
-    if (beatDistance[3] >= userCircleRadius[3]) {
-        //console.log("COLLISION 4");
-        shake = SHAKE_AMOUNT[3];
-        sampler.triggerAttackRelease(NOTES[3], Tone.context.currentTime);
-        beatDistance[3] = 0;
-        beatVelocity[3] = 0
-    }
-    ctx.beginPath();
-    ctx.fillRect(canvas.width/2-2 - beatDistance[3],canvas.height/2-2,4,4);
-    beatDistance[3] += beatVelocity[3] * (elapsedTime)
 
     // draw template circle
     if (shake > 1.5) {
@@ -231,8 +219,61 @@ function setAB(point, xOffset, yOffset) {
     point.b = yOffset - point.y;
 }
 
-function stopPainting(){
-    console.log("stopPainting, calculating user circle radius");
+
+//var THETA = [Math.PI/3, 2*Math.PI/3, Math.PI/2, Math.PI, 3*Math.PI/2];
+var theta = [0, Math.PI/2, Math.PI, 3*Math.PI/2];
+var tanTheta = [];
+for (let i = 0; i < theta.length; i++) {
+    tanTheta.push(Math.tan(theta[i]));
+}
+
+function clamp(val, max, min) {
+    return Math.min(Math.max(val, min), max);
+}
+
+function getAngle(a, b) {
+    if (a > 0 && b > 0) {
+        return Math.atan(a/b);
+    }
+    if (a > 0 && b < 0) {
+        return Math.PI - Math.atan(a/(-1*b));
+    }
+    if (a < 0 && b < 0) {
+        return Math.PI + Math.atan(a/b);
+    }
+    if (a < 0 && b > 0) {
+        return 2*Math.PI - Math.atan((-1*a)/b)
+    }
+    if (a == 0 && b > 0) {
+        return 0;
+    }
+    if (a == 0 && b < 0) {
+        return Math.PI;
+    }
+    if (a > 0 && b == 0) {
+        return Math.PI/2;
+    }
+    if (a < 0 && b == 0) {
+        return 3*Math.PI/2;
+    }
+    if (a == 0 && b == 0) {
+        console.log("Angle at (0, 0) is 0");
+        // a point on the origin. by convention we will call this angle 0
+        return 0;
+    }
+    console.error("Unable to find angle for a=" + a + " b=" + b);
+    return 0;
+}
+
+function posATan(x) {
+    let val = Math.atan(x);
+    if (val < 0) {
+        return 2*Math.PI + val;
+    }
+    return val;
+}
+
+function calculateUserCircleRadius() {
     userCircleRadius = [-1, -1, -1, -1];
 
     for (let i = 1; i < userCircle.length; i++) {
@@ -249,62 +290,67 @@ function stopPainting(){
         //   |
         //   . origin of the circle, located at (xOffset, yOffset)
 
-        const xOffset = canvas.width/2;
-        const yOffset = canvas.height/2;
-        if (Math.sign(point1.x - xOffset) != Math.sign(point2.x - xOffset)) {
-            // 'a' has changed signs, meaning
-            // we have crossed the vertical axis of the circle
+        const xOffset = canvas.width/2 - 2;
+        const yOffset = canvas.height/2 - 2;
 
-            setAB(point1, xOffset, yOffset);
-            setAB(point2, xOffset, yOffset);
+        setAB(point1, xOffset, yOffset);
+        setAB(point2, xOffset, yOffset);
 
-            // calculate Y-intercept == radius
-            M = (point1.b - point2.b) / (point1.a - point2.a);
-            R = Math.abs(point1.b - M * point1.a);
-
-            // if b is pos, this is beat 1. if b is neg, this is beat 3
-            if (point1.b > 0) {
-                if (userCircleRadius[0] == -1) {
-                    console.log("setting top radius first time R=" + R);
-                    userCircleRadius[0] = R;
-                } else {
-                    console.log("setting top radius as min R=" + R + "userCircleRadius=" + userCircleRadius[0]);
-                    userCircleRadius[0] = Math.min(userCircleRadius[0], R);
-                }
-            } else if (point1.b < 0) {
-                console.log("setting bottom radius R=" + R);
-                if (userCircleRadius[2] == -1) {
-                    userCircleRadius[2] = R;
-                } else {
-                    userCircleRadius[2] = Math.min(userCircleRadius[2], R);
+        if (Math.sign(point1.a) != Math.sign(point2.a) && point1.b > 0 && point2.b > 0) {
+            // passing angle 0
+            if (theta[0] != 0) {
+                if (theta.includes(0)) {
+                    console.error("If theta includes 0, it should be in the first position.");
+                    break;
                 }
             }
-        }
-        if (Math.sign(yOffset - point1.y) != Math.sign(yOffset - point2.y)) {
-            // 'b' has changed signs, meaning
-            // we have crossed the horizontal axis of the circle
 
-            setAB(point1, xOffset, yOffset);
-            setAB(point2, xOffset, yOffset);
+            // calculate Y-intercept == radius
+            let m = (point1.b - point2.b) / (point1.a - point2.a);
+            let r = Math.abs(point1.b - m * point1.a);
 
-            // calculate X-intercept == radius
-            N = (point1.a - point2.a) / (point1.b - point2.b);
-            R = Math.abs(point1.a - N * point1.b);
+            // if b is pos, this is beat 1. if b is neg, this is beat 3
+            if (userCircleRadius[0] == -1) {
+                //console.log("setting top radius first time R=" + R);
+                userCircleRadius[0] = r;
+            } else {
+                //console.log("setting top radius as min R=" + R + " userCircleRadius=" + userCircleRadius[0]);
+                userCircleRadius[0] = Math.min(userCircleRadius[0], r);
+            }
+        } else {
+            for (let j = 0; j < theta.length; j++) {
+                let angle1 = getAngle(point1.a, point1.b);
+                let angle2 = getAngle(point2.a, point2.b);
 
-            // if a is pos, this is beat 2. if a is neg, this is beat 4
-            if (point1.a > 0) {
-                console.log("setting right radius R=" + R);
-                if (userCircleRadius[1] == -1) {
-                    userCircleRadius[1] = R;
-                } else {
-                    userCircleRadius[1] = Math.min(userCircleRadius[1], R);
-                }
-            } else if (point1.a < 0) {
-                console.log("setting left radius R=" + R);
-                if (userCircleRadius[3] == -1) {
-                    userCircleRadius[3] = R;
-                } else {
-                    userCircleRadius[3] = Math.min(userCircleRadius[3], R);
+                if ((angle1 < theta[j] && angle2 >= theta[j])
+                        || (angle1 > theta[j] && angle2 <= theta[j])) {
+                    // angle has passed theta 
+                    let m = (point1.b - point2.b) / (point1.a - point2.a);
+                    if (m > 0) {
+                        m = clamp(m, 1000000, 0.000001);
+                    } else {
+                        m = clamp(m, -0.0000001, -1000000);
+                    }
+                    let A = math.matrix([[-1 / tanTheta[j], 1], [-1*m, 1]]);
+                    let B = math.matrix([[0], [point1.b - (m*point1.a)]]);
+                    let X = math.multiply(math.inv(A), B);
+                    let r = Math.sqrt(Math.pow(X.get([0, 0]), 2) + Math.pow(X.get([1, 0]), 2));
+
+                    //console.log('j=' + j);
+                    //console.log("point1=" + point1.a + ',' + point1.b);
+                    //console.log("point2=" + point2.a + ',' + point2.b);
+                    //console.log("m=" + m);
+                    //console.log("A=" + A);
+                    //console.log("B=" + B);
+                    //console.log("X=" + X);
+                    //console.log("r=" + r);
+
+                    // set user circle radius to the closest radius so far
+                    if (userCircleRadius[j] == -1) {
+                        userCircleRadius[j] = r;
+                    } else {
+                        userCircleRadius[j] = Math.min(userCircleRadius[j], r);
+                    }
                 }
             }
         }
@@ -312,11 +358,13 @@ function stopPainting(){
 
     for (let i = 0; i < 4; i++) {
         if (userCircleRadius[i] == -1) {
-            console.log("No radius " + i + ", using default");
             userCircleRadius[i] = templateRadius;
         }
     }
+}
 
+function stopPainting(){
+    calculateUserCircleRadius();
     paint = false;
     startAnimation()
 }
