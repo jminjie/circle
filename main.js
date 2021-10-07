@@ -464,7 +464,8 @@ function sketch(event, touch){
 
 function acceptSound() {
     document.cookie = "cookie_soundon=true;";
-    $('.sound-overlay').removeClass('d-block').addClass('d-none');
+    document.querySelector('.sound-overlay').classList.remove('d-block');
+    document.querySelector('.sound-overlay').classList.add('d-none');
     stopAnimation();
 	Tone.start();
 	startAnimation();
