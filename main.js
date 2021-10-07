@@ -76,6 +76,11 @@ window.addEventListener('load', ()=>{
 
     clearUserCircle();
     startAnimation();
+
+    if (document.cookie.indexOf("cookie_soundon=") < 0) {
+        document.querySelector('.sound-overlay').classList.remove('d-none');
+        document.querySelector('.sound-overlay').classList.add('d-block');
+    }
 });
 
 function resize(){
@@ -457,16 +462,10 @@ function sketch(event, touch){
     userCircle.push(savedCoord);
 }
 
-// TODO do this without jquery
-$(document).ready(function() {
-  if (document.cookie.indexOf("cookie_soundon=") < 0) {
-    $('.sound-overlay').removeClass('d-none').addClass('d-block');
-  }
-  $('.accept-sound').on('click', function() {
+function acceptSound() {
     document.cookie = "cookie_soundon=true;";
     $('.sound-overlay').removeClass('d-block').addClass('d-none');
     stopAnimation();
 	Tone.start();
 	startAnimation();
-	});
-});
+}
