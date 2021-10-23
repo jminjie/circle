@@ -75,11 +75,11 @@ window.addEventListener('load', ()=>{
     canvas.onmousemove = sketchMouse;
 
     clearUserCircle();
-    startAnimation();
 
     if (document.cookie.indexOf("cookie_soundon=") < 0) {
         document.querySelector('.sound-overlay').classList.remove('d-none');
-        document.querySelector('.sound-overlay').classList.add('d-block');
+    } else {
+        startAnimation();
     }
 });
 
@@ -464,7 +464,6 @@ function sketch(event, touch){
 
 function acceptSound() {
     document.cookie = "cookie_soundon=true;";
-    document.querySelector('.sound-overlay').classList.remove('d-block');
     document.querySelector('.sound-overlay').classList.add('d-none');
     stopAnimation();
 	Tone.start();
