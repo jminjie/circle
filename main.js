@@ -66,7 +66,12 @@ window.addEventListener('load', ()=>{
 	resize(); // Resizes the canvas once the window loads
 	window.addEventListener('resize', resize);
 
-    const canvas = document.querySelector('#canvas');
+    // prevent scrolling while drawing circle
+    canvas.addEventListener("touchstart",  function(event) {event.preventDefault()})
+    canvas.addEventListener("touchmove",   function(event) {event.preventDefault()})
+    canvas.addEventListener("touchend",    function(event) {event.preventDefault()})
+    canvas.addEventListener("touchcancel", function(event) {event.preventDefault()})
+
     canvas.addEventListener("touchstart", startPaintingTouch, false);
     canvas.addEventListener("touchend", stopPainting, false);
     canvas.addEventListener("touchmove", sketchTouch, false);
